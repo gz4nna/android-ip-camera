@@ -1,0 +1,11 @@
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
+
+local.properties
+gradle/wrapper/gradle-wrapper.jar
+app/release
+signing.properties
+app/signing-key.jks
