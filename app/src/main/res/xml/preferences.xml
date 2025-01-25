@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory
+        android:title="Stream Camera Quality">
+        <EditTextPreference
+                android:key="stream_delay"
+                android:title="Stream Delay (33ms = 30fps)"
+                android:summary="Increase the delay to reduce phone heat"
+                android:defaultValue="33"
+                android:inputType="number" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:title="HTTP Basic Authentication"
+        android:summary="Leave blank for no username/password">
+        <EditTextPreference
+            android:key="username"
+            android:title="Username"
+            android:summary=""
+            android:defaultValue=""
+            android:singleLine="true"
+            android:dialogTitle="Enter Username" />
+        <EditTextPreference
+            android:key="password"
+            android:title="Password"
+            android:defaultValue=""
+            android:inputType="textPassword"
+            android:singleLine="true"
+            android:dialogTitle="Enter Password" />
+    </PreferenceCategory>
+</PreferenceScreen>

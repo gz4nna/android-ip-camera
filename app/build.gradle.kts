@@ -23,6 +23,7 @@ dependencies {
     // This dependency is used by the application.
     implementation(libs.guava)
     implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.preference:preference-ktx:1.2.1")
 }
 
 testing {
