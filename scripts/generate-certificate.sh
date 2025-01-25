@@ -11,6 +11,10 @@ ORGANIZATION="Organization Name"
 ORGANIZATIONAL_UNIT="IT"
 COMMON_NAME="localhost"
 
+# Prompt user for password
+read -sp "Create a password for the certificate: " PASSWORD
+echo
+
 # Create certificates directory if it doesn't exist
 mkdir -p $CERT_DIR
 
@@ -29,7 +33,7 @@ openssl pkcs12 -export \
     -inkey "$CERT_DIR/$CERT_NAME.key" \
     -out "$CERT_DIR/$CERT_NAME.p12" \
     -name "$CERT_NAME" \
-    -password pass:changeme \
+    -password pass:$PASSWORD \
     -legacy
 
 echo "Certificate generation complete!"
