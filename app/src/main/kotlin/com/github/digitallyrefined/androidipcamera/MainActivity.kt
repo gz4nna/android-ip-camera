@@ -143,6 +143,8 @@ class MainActivity : AppCompatActivity() {
         ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
 
+    private var lensFacing = CameraSelector.DEFAULT_BACK_CAMERA
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -187,6 +189,16 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.hidePreviewButton).setOnClickListener {
             hidePreview()
         }
+
+        // Add switch camera button handler
+        findViewById<Button>(R.id.switchCameraButton).setOnClickListener {
+            lensFacing = if (lensFacing == CameraSelector.DEFAULT_FRONT_CAMERA) {
+                CameraSelector.DEFAULT_BACK_CAMERA
+            } else {
+                CameraSelector.DEFAULT_FRONT_CAMERA
+            }
+            startCamera()
+        }
     }
 
     private fun getLocalIpAddress(): String {
@@ -214,11 +226,13 @@ class MainActivity : AppCompatActivity() {
             viewFinder.visibility = View.GONE
             toggleButton.visibility = View.GONE
             ipAddressText.visibility = View.GONE
+            switchCameraButton.visibility = View.GONE
             rootView.setBackgroundColor(android.graphics.Color.BLACK)
         } else {
             viewFinder.visibility = View.VISIBLE
             toggleButton.visibility = View.VISIBLE
             ipAddressText.visibility = View.VISIBLE
+            switchCameraButton.visibility = View.VISIBLE
             rootView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         }
     }
@@ -249,7 +263,7 @@ class MainActivity : AppCompatActivity() {
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(
                     this,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    lensFacing,
                     preview,
                     imageAnalyzer
                 )
