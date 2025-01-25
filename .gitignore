@@ -9,3 +9,4 @@ gradle/wrapper/gradle-wrapper.jar
 app/release
 signing.properties
 app/signing-key.jks
+certificates

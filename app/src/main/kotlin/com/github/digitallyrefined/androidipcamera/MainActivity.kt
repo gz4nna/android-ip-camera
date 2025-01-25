@@ -39,15 +39,23 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import android.util.Base64
 import android.util.Size
+import android.net.Uri
+import androidx.preference.PreferenceManager
+import java.security.KeyStore
+import javax.net.ssl.KeyManagerFactory
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLServerSocket
+import javax.net.ssl.SSLServerSocketFactory
+import android.content.SharedPreferences
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewBinding: ActivityMainBinding
     private lateinit var cameraExecutor: ExecutorService
     private var imageAnalyzer: ImageAnalysis? = null
     private var serverSocket: ServerSocket? = null
-    private var clientSocket: Socket? = null
-    private var outputStream: OutputStream? = null
     private var clients = mutableListOf<Client>()
+    private var hasRequestedPermissions = false
 
     data class Client(
         val socket: Socket,
@@ -131,8 +139,78 @@ class MainActivity : AppCompatActivity() {
 
     private fun startStreamingServer() {
         try {
-            serverSocket = ServerSocket(STREAM_PORT)
-            Log.i(TAG, "Server started on port $STREAM_PORT")
+            // Get certificate path from preferences
+            val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+            val useCertificate = prefs.getBoolean("use_certificate", false)
+            val certificatePath = if (useCertificate) prefs.getString("certificate_path", null) else null
+            val certificatePassword = if (useCertificate) {
+                prefs.getString("certificate_password", "")?.let {
+                    if (it.isEmpty()) null else it.toCharArray()
+                }
+            } else null
+
+            // Create server socket with specific bind address
+            serverSocket = if (certificatePath != null) {
+                // SSL server socket creation code...
+                try {
+                    val uri = Uri.parse(certificatePath)
+                    // Copy the certificate to app's private storage
+                    val privateFile = File(filesDir, "certificate.p12")
+                    try {
+                        // Delete existing certificate if it exists
+                        if (privateFile.exists()) {
+                            privateFile.delete()
+                        }
+
+                        // Copy new certificate
+                        contentResolver.openInputStream(uri)?.use { input ->
+                            privateFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
+                        } ?: throw IOException("Failed to open certificate file")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to copy certificate: ${e.message}")
+                        throw e
+                    }
+
+                    // Use the private copy of the certificate
+                    privateFile.inputStream().use { inputStream ->
+                        val keyStore = KeyStore.getInstance("PKCS12")
+                        keyStore.load(inputStream, certificatePassword)
+
+                        val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
+                        keyManagerFactory.init(keyStore, certificatePassword)
+
+                        val sslContext = SSLContext.getInstance("TLSv1.2")  // Specify TLS version
+                        sslContext.init(keyManagerFactory.keyManagers, null, null)
+
+                        val sslServerSocketFactory = sslContext.serverSocketFactory
+                        (sslServerSocketFactory.createServerSocket(STREAM_PORT, 50, null) as SSLServerSocket).apply {
+                            enabledProtocols = arrayOf("TLSv1.2")
+                            enabledCipherSuites = supportedCipherSuites
+                            reuseAddress = true
+                            soTimeout = 30000  // 30 seconds timeout
+                        }
+                    } ?: ServerSocket(STREAM_PORT)  // Fallback if inputStream is null
+                } catch (e: Exception) {
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        Log.e(TAG, "Failed to create SSL server socket: ${e.message}")
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Failed to create SSL server socket: ${e.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    ServerSocket(STREAM_PORT) // Fallback to regular socket
+                }
+            } else {
+                ServerSocket(STREAM_PORT, 50, null).apply {
+                    reuseAddress = true
+                    soTimeout = 30000
+                }
+            }
+
+            Log.i(TAG, "Server started on port $STREAM_PORT (${if (certificatePath != null) "HTTPS" else "HTTP"})")
 
             while (!Thread.currentThread().isInterrupted) {
                 try {
@@ -201,7 +279,7 @@ class MainActivity : AppCompatActivity() {
                     val delay = prefs.getString("stream_delay", "33")?.toLongOrNull() ?: 33L
                     Thread.sleep(delay)
                 } catch (e: IOException) {
-                    Log.e(TAG, "Error accepting client: ${e.message}")
+                  // Ignore
                 } catch (e: InterruptedException) {
                     Thread.currentThread().interrupt()
                     break
@@ -249,12 +327,15 @@ class MainActivity : AppCompatActivity() {
         // Keep screen on
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Request camera permissions
-        if (allPermissionsGranted()) {
-            startCamera()
-        } else {
+        // Request permissions before starting camera
+        if (!allPermissionsGranted() && !hasRequestedPermissions) {
+            hasRequestedPermissions = true
             ActivityCompat.requestPermissions(
                 this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
+        } else if (allPermissionsGranted()) {
+            startCamera()
+        } else {
+            finish()
         }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -267,9 +348,12 @@ class MainActivity : AppCompatActivity() {
         // Find the TextView
         val ipAddressText = findViewById<TextView>(R.id.ipAddressText)
 
-        // Get and display the IP address
+        // Get and display the IP address with correct protocol
         val ipAddress = getLocalIpAddress()
-        ipAddressText.text = "http://$ipAddress:4444"
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        val useCertificate = prefs.getBoolean("use_certificate", false)
+        val protocol = if (useCertificate) "https" else "http"
+        ipAddressText.text = "$protocol://$ipAddress:$STREAM_PORT"
 
         // Add toggle preview button
         findViewById<Button>(R.id.hidePreviewButton).setOnClickListener {
@@ -303,10 +387,13 @@ class MainActivity : AppCompatActivity() {
             if (allPermissionsGranted()) {
                 startCamera()
             } else {
+                // Show which permissions are missing
+                val missingPermissions = REQUIRED_PERMISSIONS.filter {
+                    ContextCompat.checkSelfPermission(baseContext, it) != PackageManager.PERMISSION_GRANTED
+                }
                 Toast.makeText(this,
-                    "Camera permission is required to use this app",
-                    Toast.LENGTH_SHORT).show()
-                finish()
+                    "Please allow camera permissions",
+                    Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -366,6 +453,15 @@ class MainActivity : AppCompatActivity() {
             imageAnalyzer = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
+                .apply {
+                    // Get resolution from preferences
+                    val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this@MainActivity)
+                    when (prefs.getString("camera_resolution", "low")) {
+                        "high" -> setTargetResolution(android.util.Size(1280, 720))
+                        "medium" -> setTargetResolution(android.util.Size(640, 480))
+                        // "low" -> don't set resolution, use CameraX default
+                    }
+                }
                 .build()
                 .also { analysis ->
                     analysis.setAnalyzer(cameraExecutor) { image ->
@@ -398,10 +494,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-      private const val TAG = "MainActivity"
-      private const val STREAM_PORT = 4444
-      private const val REQUEST_CODE_PERMISSIONS = 10
-      private const val MAX_CLIENTS = 3  // Limit concurrent connections
-      private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
+        private const val TAG = "MainActivity"
+        private const val STREAM_PORT = 4444
+        private const val REQUEST_CODE_PERMISSIONS = 10
+        private const val MAX_CLIENTS = 3  // Limit concurrent connections
+        private val REQUIRED_PERMISSIONS = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            arrayOf(Manifest.permission.CAMERA)
+        } else {
+            arrayOf(
+                Manifest.permission.CAMERA,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            )
+        }
     }
 }
