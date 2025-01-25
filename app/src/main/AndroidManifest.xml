@@ -10,6 +10,7 @@
     <uses-feature android:name="android.hardware.camera.any" />
 
     <application
+        android:label="Android IP Camera"
         android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
         <activity
             android:name=".MainActivity"
