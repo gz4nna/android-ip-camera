@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -9,31 +10,45 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <Button
+    <!--<Button
         android:id="@+id/hidePreviewButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hide Preview"
+        android:text="熄灭屏幕"
+        android:visibility="invisible"
         android:layout_margin="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <Button
-        android:id="@+id/settingsButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Settings"
-        android:layout_margin="16dp"
-        app:layout_constraintBottom_toTopOf="@id/switchCameraButton"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent" />-->
 
     <Button
         android:id="@+id/switchCameraButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Switch Camera"
+        android:text="切换相机"
         android:layout_margin="16dp"
-        app:layout_constraintBottom_toTopOf="@id/hidePreviewButton"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <Button
+        android:id="@+id/captureFrameButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:text="拍照"
+        android:onClick="captureFrameButton_OnClick"
+        app:layout_constraintBottom_toTopOf="@+id/switchCameraButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/settingsButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="设置"
+        android:layout_margin="16dp"
+        app:layout_constraintBottom_toTopOf="@id/switchCameraButton"
         app:layout_constraintEnd_toEndOf="parent" />
 
     <TextView
@@ -47,6 +62,19 @@
         android:background="#80000000"
         android:padding="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/globalDebugText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:layout_marginStart="16dp"
+        android:textSize="16sp"
+        android:textColor="#FFFFFF"
+        android:background="#80000000"
+        android:padding="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/ipAddressText"
         app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
