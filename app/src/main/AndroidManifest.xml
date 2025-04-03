@@ -10,8 +10,9 @@
 
     <uses-feature android:name="android.hardware.camera.any" />
 
+    <!--原作者DigitallyRefined,现在版本是尝试对droidcam进行高仿-->
     <application
-        android:label="Android IP Camera"
+        android:label="检测室拍照-GZ4nna魔改版"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
