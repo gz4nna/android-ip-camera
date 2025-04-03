@@ -322,6 +322,7 @@ class MainActivity : AppCompatActivity() {
                     if (message.startsWith("PAIR:")) {
                         pairedComputerIP = message.substringAfter("PAIR:")
                         Log.d("PairingReceiver", "Paired with computer at $pairedComputerIP")
+                        findViewById<Button>(R.id.globalDebugText).text = "接受到连接: $pairedComputerIP"
                     }
 
                     clientSocket.close()
