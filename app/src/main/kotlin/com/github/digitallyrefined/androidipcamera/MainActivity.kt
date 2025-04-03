@@ -56,6 +56,9 @@ class MainActivity : AppCompatActivity() {
     private var serverSocket: ServerSocket? = null
     private var clients = mutableListOf<Client>()
     private var hasRequestedPermissions = false
+    // 正在监听自己的电脑ip
+    private var pairedComputerIP: String? = null
+
 
     data class Client(
         val socket: Socket,
@@ -216,6 +219,7 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val socket = serverSocket?.accept() ?: continue
 
+                    // 这里是最大连接数限制
                     if (handleMaxClients(socket)) {
                         continue
                     }
@@ -224,13 +228,14 @@ class MainActivity : AppCompatActivity() {
                     val writer = PrintWriter(outputStream, true)
                     val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
 
+                    // 身份验证功能,先注释了
                     // Get auth credentials from preferences using androidx.preference
-                    val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+                    /*val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
                     val username = prefs.getString("username", "") ?: ""
-                    val password = prefs.getString("password", "") ?: ""
+                    val password = prefs.getString("password", "") ?: ""*/
 
                     // Check authentication if credentials are set
-                    if (username.isNotEmpty() && password.isNotEmpty()) {
+                    /*if (username.isNotEmpty() && password.isNotEmpty()) {
                         // Read all headers
                         val headers = mutableListOf<String>()
                         var line: String?
@@ -261,6 +266,20 @@ class MainActivity : AppCompatActivity() {
                             socket.close()
                             continue
                         }
+                    }*/
+
+                    // 将视频流推到 ip:4747/video 下,保持和 droidcam 一致
+                    val requestLine = reader.readLine() ?: continue
+                    val requestParts = requestLine.split(" ")
+                    if (requestParts.size < 2) continue
+                    val requestPath = requestParts[1]
+
+                    if (requestPath != "/video") {
+                        writer.print("HTTP/1.1 404 Not Found\r\n")
+                        writer.print("Content-Length: 0\r\n\r\n")
+                        writer.flush()
+                        socket.close()
+                        continue
                     }
 
                     // Send HTTP headers for video stream
@@ -288,6 +307,29 @@ class MainActivity : AppCompatActivity() {
         } catch (e: IOException) {
             Log.e(TAG, "Could not start server: ${e.message}")
         }
+    }
+
+    // 开始监听6060口等待连接电脑自己发送ip过来
+    private fun startListening4Pairing(){
+        Thread {
+            try {
+                val serverSocket = ServerSocket(6060)
+                while (true) {
+                    val clientSocket = serverSocket.accept()
+                    val reader = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
+                    val message = reader.readLine()
+
+                    if (message.startsWith("PAIR:")) {
+                        pairedComputerIP = message.substringAfter("PAIR:")
+                        Log.d("PairingReceiver", "Paired with computer at $pairedComputerIP")
+                    }
+
+                    clientSocket.close()
+                }
+            } catch (e: Exception) {
+                Log.e("PairingReceiver", "Error receiving pairing request: ${e.message}")
+            }
+        }.start()
     }
 
     private fun closeClientConnection() {
@@ -343,6 +385,7 @@ class MainActivity : AppCompatActivity() {
         // Start streaming server
         lifecycleScope.launch(Dispatchers.IO) {
             startStreamingServer()
+            startListening4Pairing()
         }
 
         // Find the TextView
@@ -355,10 +398,11 @@ class MainActivity : AppCompatActivity() {
         val protocol = if (useCertificate) "https" else "http"
         ipAddressText.text = "$protocol://$ipAddress:$STREAM_PORT"
 
+        // 息屏按钮的事件绑定,王健说不要这个功能,先注释了
         // Add toggle preview button
-        findViewById<Button>(R.id.hidePreviewButton).setOnClickListener {
+        /*findViewById<Button>(R.id.hidePreviewButton).setOnClickListener {
             hidePreview()
-        }
+        }*/
 
         // Add switch camera button handler
         findViewById<Button>(R.id.switchCameraButton).setOnClickListener {
@@ -400,40 +444,54 @@ class MainActivity : AppCompatActivity() {
 
     private fun getLocalIpAddress(): String {
         try {
+            // 这里和GS里的识别保持一致
+            val preferredPrefixes = listOf("192.168.", "10.", "172.16.")
+
+            val allIps = mutableListOf<String>()
+
             NetworkInterface.getNetworkInterfaces().toList().forEach { networkInterface ->
                 networkInterface.inetAddresses.toList().forEach { address ->
                     if (!address.isLoopbackAddress && address is Inet4Address) {
-                        return address.hostAddress ?: "unknown"
+                        val ip = address.hostAddress ?: return@forEach
+                        allIps.add(ip)
+
+                        // 优先返回符合要求的 IP
+                        if (preferredPrefixes.any { ip.startsWith(it) }) {
+                            return ip
+                        }
                     }
                 }
             }
+            // 如果找不到符合条件的 IP，则返回第一个找到的 IPv4 地址
+            return allIps.firstOrNull() ?: "unknown"
         } catch (e: Exception) {
             e.printStackTrace()
         }
         return "unknown"
     }
 
+    // 息屏,注释掉自己不可见避免找不到恢复按钮
     private fun hidePreview() {
         val viewFinder = viewBinding.viewFinder
         val rootView = viewBinding.root
         val ipAddressText = findViewById<TextView>(R.id.ipAddressText)
         val settingsButton = findViewById<Button>(R.id.settingsButton)
         val switchCameraButton = findViewById<TextView>(R.id.switchCameraButton)
-        val hidePreviewButton = findViewById<Button>(R.id.hidePreviewButton)
+        // val hidePreviewButton = findViewById<Button>(R.id.hidePreviewButton)
 
         if (viewFinder.visibility == View.VISIBLE) {
             viewFinder.visibility = View.GONE
             ipAddressText.visibility = View.GONE
             settingsButton.visibility = View.GONE
             switchCameraButton.visibility = View.GONE
-            hidePreviewButton.visibility = View.GONE
+            // hidePreviewButton.visibility = View.GONE
             rootView.setBackgroundColor(android.graphics.Color.BLACK)
         } else {
             viewFinder.visibility = View.VISIBLE
             ipAddressText.visibility = View.VISIBLE
             settingsButton.visibility = View.VISIBLE
             switchCameraButton.visibility = View.VISIBLE
-            hidePreviewButton.visibility = View.VISIBLE
+            // hidePreviewButton.visibility = View.VISIBLE
             rootView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         }
     }
@@ -495,7 +553,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
-        private const val STREAM_PORT = 4444
+        private const val STREAM_PORT = 4747
         private const val REQUEST_CODE_PERMISSIONS = 10
         private const val MAX_CLIENTS = 3  // Limit concurrent connections
         private val REQUIRED_PERMISSIONS = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -506,5 +564,25 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.READ_EXTERNAL_STORAGE
             )
         }
+    }
+
+    // 点击拍照的时候发送指令到运行GS的电脑的5050口
+    fun captureFrameButton_OnClick(view: View) {
+        pairedComputerIP?.let {
+            Thread {
+                try {
+                    val socket = Socket(it, 5050)
+                    val outputStream = socket.getOutputStream()
+                    outputStream.write("CAPTURE".toByteArray())
+                    outputStream.flush()
+                    socket.close()
+                    Log.d("debug", "Capture command sent to $it")
+                    findViewById<Button>(R.id.globalDebugText).text = "拍照指令已发送到: $it"
+                } catch (e: Exception) {
+                    Log.e("debug", "Error sending capture command: ${e.message}")
+                    findViewById<Button>(R.id.globalDebugText).text = "发送指令时出错: ${e.message}"
+                }
+            }.start()
+        } ?: Log.e("debug", "No paired computer found")
     }
 }
