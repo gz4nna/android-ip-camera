@@ -213,7 +213,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            Log.i(TAG, "Server started on port $STREAM_PORT (${if (certificatePath != null) "HTTPS" else "HTTP"})")
+            startListening4Pairing()
+
+            Log.i("debug", "Server started on port $STREAM_PORT (${if (certificatePath != null) "HTTPS" else "HTTP"})")
 
             while (!Thread.currentThread().isInterrupted) {
                 try {
@@ -386,7 +388,6 @@ class MainActivity : AppCompatActivity() {
         // Start streaming server
         lifecycleScope.launch(Dispatchers.IO) {
             startStreamingServer()
-            startListening4Pairing()
         }
 
         // Find the TextView
