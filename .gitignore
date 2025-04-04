@@ -4,8 +4,17 @@
 # Ignore Gradle build output directory
 build
 
-# Ignore Obsidian
+# 忽略 Obsidian
 .obsidian
+
+# 忽略 release 文件夹
+release
+
+# 忽略演示项目的配置和编译内容
+Sample/.vs
+Sample/bin
+Sample/obj
+
 
 local.properties
 gradle/wrapper/gradle-wrapper.jar
