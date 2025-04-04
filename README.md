@@ -1,40 +1,49 @@
+⚠forked from [DigitallyRefined/android-ip-camera](https://github.com/DigitallyRefined/android-ip-camera)
+
 # Android IP Camera
 
+MJPEG 流 IP 摄像头安卓应用
+
 An Android MJPEG IP Camera app
+## Intro
 
-![Desktop Browser](screenshot.webp)
+在业务场景中使用到了应用 droidcam 来为 IPhone 提供 IP 摄像头支持
 
-## Install
+同样想要使用这个应用到安卓设备时发现问题:由于中国发行的安卓手机大多无法直接使用谷歌商店和谷歌框架,因此无法做到让用户无技术门槛地点击即用
 
-<div align="center">
-<a href="https://github.com/DigitallyRefined/android-ip-camera/releases">
-<img src="https://user-images.githubusercontent.com/69304392/148696068-0cfea65d-b18f-4685-82b5-329a330b1c0d.png"
-alt="Get it on GitHub" align="center" height="80" /></a>
+于是将  [DigitallyRefined/android-ip-camera](https://github.com/DigitallyRefined/android-ip-camera) 这个项目进行了简单的修改,使其基本能够达到 droidcam 类似的效果
 
-<a href="https://github.com/ImranR98/Obtainium">
-<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/refs/heads/main/assets/graphics/badge_obtainium.png"
-alt="Get it on Obtainium" align="center" height="54" /></a>
-</div>
+In business scenarios, droidcam is used to provide IP camera support for IPhone👍
 
-## Features
+I also found problems when using this application to Android devices: Since most Android phones released in China cannot directly use the Google Store and Google framework, it is impossible to allow users to click and use without technical thresholds😟
 
-- 🌎 Built in server, just open the video stream in a web browser, video app or even set it as a Home Assistant MJPEG IP Camera
-- 📴 Option to turn the display off while streaming
-- 🤳 Switch between the main or selfie camera
-- 🖼️ Choose between different image quality settings and frame rates (to help reduce phone over heating)
-- 🛂 Optional username and password
-- 🔐 Optional TLS certificate support to protect stream and login details via HTTPS
+So the project [DigitallyRefined/android-ip-camera](https://github.com/DigitallyRefined/android-ip-camera) has been simply modified to enable it to basically achieve similar effects as droidcam
 
-## ⚠️ Warning
+## Main modifications
 
-If you are planning to run this 24/7, please make sure that your phone does not stay at 100% charge. Doing so may damage the battery and cause it to swell up, which could cause it to explode.
+- 优先识别可能为 USB共享网络 的地址作为 server 进行推送,方便 PC 端通过 DNS 进行一对一地自动识别设备
 
-Some models include an option to only charge to 80%, make sure this is enabled where possible.
+	Priority is given to identifying addresses that may be USB shared networks and pushing them as servers, which facilitates the PC to automatically identify devices one-to-one through DNS
 
-Note: running at a higher image quality may cause some phones to over heat, which can also damage the battery.
 
-## HTTPS/TLS certificates
+- 修改 PORT 为 4747,保持和 droidcam 的默认设置一致
 
-To protect the stream and the password from being sent in plain-text over HTTP, a certificate can be used to start the stream over HTTPS.
+	Modify PORT to 4747 to keep the default settings of droidcam
 
-To generate a new self-signed certificate, clone this repo and run `./scripts/generate-certificate.sh` then use the `server.p12`. Or if you have your own domain you can use [Let's Encrypt](https://letsencrypt.org) to skip the self-signed security warning message.
+
+- 去掉了息屏,身份验证等复杂内容,只保留基本的流数据推送
+
+	Removed complex content such as screen breaking, identity authentication, etc., and only basic streaming data push is retained
+
+## How 2 Use
+
+虽然是用的 IP 摄像头的实现方式,但是使用时候却像是虚拟摄像头🤣
+
+直接开启应用,通过数据线连接 PC,在手机设置中开启USB网络共享(或者类似的名称)
+
+在 PC 端程序中通过 IP 地址去读 MJPEG 流(这个我将重新写个演示程序放仓库里)
+
+## Next version
+
+- 增加拍照按键,按下时向记录下的一对一连接的 PC 发送一个拍照指令
+- 增加更多人机交互提示
