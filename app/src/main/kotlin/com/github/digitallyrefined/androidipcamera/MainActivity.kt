@@ -146,14 +146,14 @@ class MainActivity : AppCompatActivity() {
             val prefs = PreferenceManager.getDefaultSharedPreferences(this)
             val useCertificate = prefs.getBoolean("use_certificate", false)
             val certificatePath = if (useCertificate) prefs.getString("certificate_path", null) else null
-            val certificatePassword = if (useCertificate) {
+            /*val certificatePassword = if (useCertificate) {
                 prefs.getString("certificate_password", "")?.let {
                     if (it.isEmpty()) null else it.toCharArray()
                 }
-            } else null
+            } else null*/
 
             // Create server socket with specific bind address
-            serverSocket = if (certificatePath != null) {
+            /*serverSocket = if (certificatePath != null) {
                 // SSL server socket creation code...
                 try {
                     val uri = Uri.parse(certificatePath)
@@ -211,6 +211,10 @@ class MainActivity : AppCompatActivity() {
                     reuseAddress = true
                     soTimeout = 30000
                 }
+            }*/
+            serverSocket = ServerSocket(STREAM_PORT, 50, null).apply {
+                reuseAddress = true
+                soTimeout = 30000
             }
 
             startListening4Pairing()
@@ -473,7 +477,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 息屏,注释掉自己不可见避免找不到恢复按钮
-    private fun hidePreview() {
+    /*private fun hidePreview() {
         val viewFinder = viewBinding.viewFinder
         val rootView = viewBinding.root
         val ipAddressText = findViewById<TextView>(R.id.ipAddressText)
@@ -496,7 +500,7 @@ class MainActivity : AppCompatActivity() {
             // hidePreviewButton.visibility = View.VISIBLE
             rootView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         }
-    }
+    }*/
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
