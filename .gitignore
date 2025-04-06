@@ -7,8 +7,12 @@ build
 # 忽略 Obsidian
 .obsidian
 
+# 忽略 idea
+.idea
+
 # 忽略 release 文件夹
 release
+
 
 # 忽略演示项目的配置和编译内容
 Sample/.vs
