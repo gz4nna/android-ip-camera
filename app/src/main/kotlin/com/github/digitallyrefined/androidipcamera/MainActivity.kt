@@ -47,6 +47,7 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLServerSocket
 import javax.net.ssl.SSLServerSocketFactory
 import android.content.SharedPreferences
+import android.media.Image
 import java.io.File
 
 class MainActivity : AppCompatActivity() {
@@ -69,6 +70,7 @@ class MainActivity : AppCompatActivity() {
     private var lastFrameTime = 0L
 
     private fun processImage(image: ImageProxy) {
+        Log.d("debug","processImage")
         // Get delay from preferences
         val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
         val delay = prefs.getString("stream_delay", "33")?.toLongOrNull() ?: 33L
@@ -109,16 +111,22 @@ class MainActivity : AppCompatActivity() {
                     client.writer.print("--frame\r\n")
                     client.writer.print("Content-Type: image/jpeg\r\n")
                     client.writer.print("Content-Length: ${jpegBytes.size}\r\n\r\n")
+                    Log.d("debug", "Sending JPEG frame: size=${jpegBytes.size}")
+
+
                     client.writer.flush()
                     client.outputStream.write(jpegBytes)
+
+                    client.socket.getOutputStream().write("\r\n\r\n".toByteArray())
+
                     client.outputStream.flush()
                     false
                 } catch (e: IOException) {
-                    Log.e(TAG, "Error sending frame: ${e.message}")
+                    Log.e("debug", "Error sending frame: ${e.message}")
                     try {
                         client.socket.close()
                     } catch (e: IOException) {
-                        Log.e(TAG, "Error closing client: ${e.message}")
+                        Log.e("debug", "Error closing client: ${e.message}")
                     }
                     true
                 }
@@ -141,19 +149,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startStreamingServer() {
+        Log.d("debug","startStreamingServer")
         try {
+            Log.d("debug","startTry")
             // Get certificate path from preferences
             val prefs = PreferenceManager.getDefaultSharedPreferences(this)
-            val useCertificate = prefs.getBoolean("use_certificate", false)
-            val certificatePath = if (useCertificate) prefs.getString("certificate_path", null) else null
-            val certificatePassword = if (useCertificate) {
+            /*val useCertificate = prefs.getBoolean("use_certificate", false)
+            val certificatePath = if (useCertificate) prefs.getString("certificate_path", null) else null*/
+            /*val certificatePassword = if (useCertificate) {
                 prefs.getString("certificate_password", "")?.let {
                     if (it.isEmpty()) null else it.toCharArray()
                 }
-            } else null
+            } else null*/
 
             // Create server socket with specific bind address
-            serverSocket = if (certificatePath != null) {
+            /*serverSocket = if (certificatePath != null) {
                 // SSL server socket creation code...
                 try {
                     val uri = Uri.parse(certificatePath)
@@ -211,16 +221,24 @@ class MainActivity : AppCompatActivity() {
                     reuseAddress = true
                     soTimeout = 30000
                 }
+            }*/
+            Log.d("debug","serverSocket")
+            serverSocket = ServerSocket(STREAM_PORT, 50, null).apply {
+                reuseAddress = true
+                soTimeout = 30000
             }
 
-            startListening4Pairing()
+            //startListening4Pairing()
 
-            Log.i("debug", "Server started on port $STREAM_PORT (${if (certificatePath != null) "HTTPS" else "HTTP"})")
-
+            //Log.i("debug", "Server started on port $STREAM_PORT (${if (certificatePath != null) "HTTPS" else "HTTP"})")
+            Log.d("debug","while")
             while (!Thread.currentThread().isInterrupted) {
+                Log.d("debug","isInterrupted")
                 try {
+                    Log.d("debug","socket")
                     val socket = serverSocket?.accept() ?: continue
 
+                    Log.d("debug","serverSocketAccept")
                     // 这里是最大连接数限制
                     if (handleMaxClients(socket)) {
                         continue
@@ -275,6 +293,7 @@ class MainActivity : AppCompatActivity() {
                     val requestParts = requestLine.split(" ")
                     if (requestParts.size < 2) continue
                     val requestPath = requestParts[1]
+                    Log.d("debug","requestPath")
 
                     if (requestPath != "/video") {
                         writer.print("HTTP/1.1 404 Not Found\r\n")
@@ -283,6 +302,7 @@ class MainActivity : AppCompatActivity() {
                         socket.close()
                         continue
                     }
+                    Log.d("debug","requestPath=video")
 
                     // Send HTTP headers for video stream
                     writer.print("HTTP/1.0 200 OK\r\n")
@@ -290,24 +310,27 @@ class MainActivity : AppCompatActivity() {
                     writer.print("Cache-Control: no-cache\r\n")
                     writer.print("Content-Type: multipart/x-mixed-replace; boundary=frame\r\n\r\n")
                     writer.flush()
+                    Log.d("debug","HTTP/1.0 200 OK")
 
                     synchronized(clients) {
                         clients.add(Client(socket, outputStream, writer))
                     }
-                    Log.i(TAG, "Client connected")
+                    Log.i("debug", "Client connected")
 
                     // Get delay from preferences
                     val delay = prefs.getString("stream_delay", "33")?.toLongOrNull() ?: 33L
                     Thread.sleep(delay)
                 } catch (e: IOException) {
+                    Log.e("debug", "IOException")
                   // Ignore
                 } catch (e: InterruptedException) {
+                    Log.e("debug", "InterruptedException")
                     Thread.currentThread().interrupt()
                     break
                 }
             }
         } catch (e: IOException) {
-            Log.e(TAG, "Could not start server: ${e.message}")
+            Log.e("debug", "Could not start server: ${e.message}")
         }
     }
 
@@ -473,7 +496,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 息屏,注释掉自己不可见避免找不到恢复按钮
-    private fun hidePreview() {
+    /*private fun hidePreview() {
         val viewFinder = viewBinding.viewFinder
         val rootView = viewBinding.root
         val ipAddressText = findViewById<TextView>(R.id.ipAddressText)
@@ -496,7 +519,7 @@ class MainActivity : AppCompatActivity() {
             // hidePreviewButton.visibility = View.VISIBLE
             rootView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         }
-    }
+    }*/
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
@@ -513,7 +536,8 @@ class MainActivity : AppCompatActivity() {
             imageAnalyzer = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
-                .apply {
+                // 一直使用CameraX的默认配置不要修改,高分辨率会导致处理出错
+                /*.apply {
                     // Get resolution from preferences
                     val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this@MainActivity)
                     when (prefs.getString("camera_resolution", "low")) {
@@ -521,7 +545,7 @@ class MainActivity : AppCompatActivity() {
                         "medium" -> setTargetResolution(android.util.Size(640, 480))
                         // "low" -> don't set resolution, use CameraX default
                     }
-                }
+                }*/
                 .build()
                 .also { analysis ->
                     analysis.setAnalyzer(cameraExecutor) { image ->
@@ -557,7 +581,7 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "MainActivity"
         private const val STREAM_PORT = 4747
         private const val REQUEST_CODE_PERMISSIONS = 10
-        private const val MAX_CLIENTS = 3  // Limit concurrent connections
+        private const val MAX_CLIENTS = 1  // Limit concurrent connections
         private val REQUIRED_PERMISSIONS = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             arrayOf(Manifest.permission.CAMERA)
         } else {
