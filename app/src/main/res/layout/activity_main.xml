@@ -36,20 +36,12 @@
         android:layout_margin="16dp"
         android:text="拍照"
         android:onClick="captureFrameButton_OnClick"
+        android:visibility="invisible"
         app:layout_constraintBottom_toTopOf="@+id/switchCameraButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
-
-    <Button
-        android:id="@+id/settingsButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="设置"
-        android:layout_margin="16dp"
-        app:layout_constraintBottom_toTopOf="@id/switchCameraButton"
-        app:layout_constraintEnd_toEndOf="parent" />
 
     <TextView
         android:id="@+id/ipAddressText"
