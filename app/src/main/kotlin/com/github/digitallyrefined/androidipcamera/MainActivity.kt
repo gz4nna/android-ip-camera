@@ -47,6 +47,7 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLServerSocket
 import javax.net.ssl.SSLServerSocketFactory
 import android.content.SharedPreferences
+import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.Image
 import java.io.File
 
@@ -546,6 +547,7 @@ class MainActivity : AppCompatActivity() {
                         // "low" -> don't set resolution, use CameraX default
                     }
                 }*/
+                .setTargetResolution(android.util.Size(1280, 720))
                 .build()
                 .also { analysis ->
                     analysis.setAnalyzer(cameraExecutor) { image ->
