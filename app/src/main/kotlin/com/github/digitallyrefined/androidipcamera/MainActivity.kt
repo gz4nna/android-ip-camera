@@ -547,7 +547,6 @@ class MainActivity : AppCompatActivity() {
                         // "low" -> don't set resolution, use CameraX default
                     }
                 }*/
-                .setTargetResolution(android.util.Size(1280, 720))
                 .build()
                 .also { analysis ->
                     analysis.setAnalyzer(cameraExecutor) { image ->
